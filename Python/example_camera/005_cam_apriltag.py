@@ -20,7 +20,7 @@ def main():
   cam.set(cv2.CAP_PROP_FRAME_WIDTH, cap_width) # 设置摄像头分辨率宽度
   cam.set(cv2.CAP_PROP_FRAME_HEIGHT, cap_height) # 设置摄像头分辨率高度
   
-  detector = apriltag.Detector(apriltag.DetectorOptions(families="tag36h11")) # 创建AprilTag检测器
+  AprilTagDetector = apriltag.Detector(apriltag.DetectorOptions(families="tag36h11")) # 创建AprilTag检测器
   
   cv2.namedWindow('cam_apriltag') # 创建名为"cam_apriltag"的窗口
   print("按 ESC 键退出程序")
@@ -37,25 +37,30 @@ def main():
     frame_roi = frame_origin[y:y+roi_height, x:x+roi_width] # 裁剪图像
     
     frame_roi_gray = cv2.cvtColor(frame_roi, cv2.COLOR_BGR2GRAY) # 将彩色图像转换为灰度图
+    results = AprilTagDetector.detect(frame_roi_gray) # 检测 AprilTag
     
-    results = detector.detect(frame_roi_gray) # 检测 AprilTag
-    
-    for result in results: # 遍历每一个检测结果
+    for result in results: # 遍历每一个AprilTag检测结果
       tag_id = result.tag_id # 获取标签 ID
       corners = result.corners # 获取四个角点坐标
-      
-      for i in range(4): # 绘制四边形的四条边
-        pt1 = tuple(corners[i].astype(int))
-        pt2 = tuple(corners[(i+1) % 4].astype(int))
-        cv2.line(frame_roi, pt1, pt2, (0, 255, 0), 3) # 绿色边框
-      
       center = result.center # 获取中心点坐标
-      center_pt = (int(center[0]), int(center[1]))
-      cv2.circle(frame_roi, center_pt, 5, (0, 0, 255), -1) # 红色中心点
+      print(tag_id) # 打印标签ID
+      print(corners) # 打印角点坐标，其格式为[ [x1, y1], [x2, y2], [x3, y3], [x4, y4] ]
+      print(center) # 打印中心点坐标，其格式为[ x, y ]
       
+      # 显示标签 ID
       label_text = f"ID: {tag_id}"
-      cv2.putText(frame_roi, label_text, (int(corners[0][0]), int(corners[0][1]) - 10),
-                  cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2) # 显示标签 ID
+      cv2.putText(frame_roi, label_text, (int(corners[0][0]), int(corners[0][1])-10),
+                  cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2) # 显示标签 ID
+      
+      # 绘制四边形的四条边
+      for i in range(4): # 遍历角点绘制四条边框
+        pt1 = tuple(corners[i].astype(int)) # 将角点坐标转换为整数，并转换为元组
+        pt2 = tuple(corners[(i+1) % 4].astype(int)) # 将下一个角点坐标转换为整数，并转换为元组
+        cv2.line(frame_roi, pt1, pt2, (0, 255, 0), 3) # 绘制绿色边框
+      
+      # 绘制红色中心点
+      center_pt = tuple(center.astype(int)) # 将中心点坐标转换为整数，并转换为元组
+      cv2.circle(frame_roi, center_pt, 5, (0,0,255), -1) # 绘制红色中心点
     
     cv2.imshow('cam_apriltag', frame_roi) # 在窗口中显示帧
     
